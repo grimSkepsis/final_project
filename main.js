@@ -8,6 +8,7 @@ var context = new Context();
 var mediaStream;
 var rec;
 var blob;
+var tempTrack;
 
 var recordState = {
   NOT_RECORDING :0,
@@ -49,6 +50,39 @@ function record() {
 }
 
 
+function createBuffer(url){
+  var request = new XMLHttpRequest();
+  request.open('GET', url, true);
+  request.responseType = 'arraybuffer';
+
+  request.onload = function(){
+    context.decodeAudioData(request.response, function(buffer){
+      console.log("buffer is: "+ buffer);
+      createBufferHelper(buffer);
+
+    });
+  };
+  request.send();
+}
+
+function createBufferHelper(buffer){
+  switch(recState){
+    case recordState.RECORDING_1:
+      track1 = buffer;
+      break;
+    case recordState.RECORDING_2:
+      track2 = buffer;
+      break;
+    case recordState.RECORDING_3:
+      track3 = buffer;
+      break;
+    case recordState.RECORDING_4:
+      track4 = buffer;
+      break;
+  }
+  recState = recordState.NOT_RECORDING;
+}
+
 function stop() {
   // stop the media stream
   mediaStream.stop();
@@ -62,28 +96,22 @@ function stop() {
     //Recorder.forceDownload(e, 'filename.wav');
     blob = e;
     //audioSource = new Audio((window.URL || window.webkitURL).createObjectURL(blob));
-    switch(recState){
-      case recordState.RECORDING_1:
-        track1 = new Audio((window.URL || window.webkitURL).createObjectURL(blob));
-        break;
-      case recordState.RECORDING_2:
-        track2 = new Audio((window.URL || window.webkitURL).createObjectURL(blob));
-        break;
-      case recordState.RECORDING_3:
-        track3 = new Audio((window.URL || window.webkitURL).createObjectURL(blob));
-        break;
-      case recordState.RECORDING_4:
-        track4 = new Audio((window.URL || window.webkitURL).createObjectURL(blob));
-        break;
-    }
-    recState = recordState.NOT_RECORDING;
+    var audioUrl = (window.URL || window.webkitURL).createObjectURL(blob);
+    createBuffer(audioUrl);
   });
 
 }
 
-$( document ).ready(function() {
-  console.log( "ready!" );
 
+
+function playTrack(track){
+  var source = context.createBufferSource();
+  source.buffer = track;
+  source.connect(context.destination);
+  source.start(0);
+}
+
+$( document ).ready(function() {
   $( "#record1" ).click(function() {
     record();
     recState = recordState.RECORDING_1;
@@ -95,7 +123,8 @@ $( document ).ready(function() {
     }
   });
   $( "#play1" ).click(function() {
-    track1.play();
+    console.log("track 1 is: "+ track1);
+    playTrack(track1);
   });
 
   //second set of controls
@@ -110,7 +139,7 @@ $( document ).ready(function() {
     }
   });
   $( "#play2" ).click(function() {
-    track2.play();
+    playTrack(track2);
   });
 
   //third set of controls
@@ -125,7 +154,7 @@ $( document ).ready(function() {
     }
   });
   $( "#play3" ).click(function() {
-    track3.play();
+    playTrack(track3);
   });
 
   //fourth set of controls
@@ -140,6 +169,6 @@ $( document ).ready(function() {
     }
   });
   $( "#play4" ).click(function() {
-    track4.play();
+    playTrack(track4);
   });
 });
