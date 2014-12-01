@@ -2,36 +2,16 @@
 "use strict";
 
 
-function audioLooperTrack(con){
-  this.gainNode = con.createGain();
-  this.convolver = context.createConvolver();
-  this.gainNode.gain.value = .5;
-  this.buffer = null;
-  this.reverberating = true;
-  this.context = con;
-  this.play = function(){
-    var source = this.context.createBufferSource();
-    source.buffer = this.buffer;
-    source.connect(this.gainNode);
-    if(this.reverberating){
-      this.gainNode.connect(this.convolver);
-      this.convolver.connect(this.context.destination);
-    }
-    else{
-      this.gainNode.connect(this.context.destination);
-    }
-
-
-    source.start(0);
-  };
-}
 
 
 var Context = window.AudioContext || window.webkitAudioContext;
 var context = new Context();
 var track1 = new audioLooperTrack(context),
-track2, track3, track4;
-
+    track2 = new audioLooperTrack(context),
+    track3 = new audioLooperTrack(context),
+    track4 = new audioLooperTrack(context);
+var impulse = {};
+impulse.buffer = null;
 
 
 var mediaStream;
@@ -50,6 +30,36 @@ var recordState = {
   RECORDING_3: 3,
   RECORDING_4: 4
 };
+
+function audioLooperTrack(con){
+  this.gainNode = con.createGain();
+  this.convolver = null;
+  this.gainNode.gain.value = .5;
+  this.buffer = null;
+  this.reverberating = false;
+  this.context = con;
+  this.play = function(){
+    var source = this.context.createBufferSource();
+    source.buffer = this.buffer;
+    source.connect(this.gainNode);
+    if(this.reverberating){
+      this.convolver = context.createConvolver();
+      this.convolver.buffer = impulse.buffer;
+      this.gainNode.connect(this.convolver);
+      this.convolver.connect(this.context.destination);
+    } else if(this.convolver){
+      this.gainNode.disconnect(0);
+      this.convolver.disconnect(0);
+      this.gainNode.connect(this.context.destination);
+    }
+    else{
+      this.gainNode.connect(this.context.destination);
+    }
+
+
+    source.start(0);
+  };
+}
 
 var navigator = window.navigator;
 navigator.getUserMedia = (
@@ -75,7 +85,7 @@ function createBuffer(url, object){
 }
 
 (function init(){
-  createBuffer("/audio/TijuanaMall.wav", track1.convolver);
+  createBuffer("audio/TijuanaMall.wav", impulse);
 }());
 
 
@@ -100,7 +110,7 @@ function record() {
   });
 }
 
-function stop() {
+function stop(track) {
   // stop the media stream
   mediaStream.stop();
 
@@ -114,7 +124,7 @@ function stop() {
     blob = e;
     //audioSource = new Audio((window.URL || window.webkitURL).createObjectURL(blob));
     var audioUrl = (window.URL || window.webkitURL).createObjectURL(blob);
-    createBuffer(audioUrl, track1);
+    createBuffer(audioUrl, track);
     recState = recordState.NOT_RECORDING;
   });
 }
@@ -131,59 +141,100 @@ $( document ).ready(function() {
   $( "#record1" ).click(function() {
     record();
     recState = recordState.RECORDING_1;
-    console.log(recState);
   });
   $( "#stop1" ).click(function() {
     if(recState = recordState.RECORDING_1){
-      stop();
+      stop(track1);
     }
   });
   $( "#play1" ).click(function() {
     track1.play();
   });
-
+  $( "#reverb1" ).click(function() {
+    if(track1.reverberating){
+      track1.reverberating = false;
+    }else{
+      track1.reverberating = true;
+    }
+  });
+  $( "#gain1" ).keyup(function() {
+    track1.gainNode.gain.value = parseFloat($(this).val());
+    console.log(track1.gainNode.gain.value);
+  });
   //second set of controls
   $( "#record2" ).click(function() {
     record();
     recState = recordState.RECORDING_2;
-    console.log(recState);
   });
   $( "#stop2" ).click(function() {
     if(recState = recordState.RECORDING_2){
-      stop();
+      stop(track2);
     }
   });
   $( "#play2" ).click(function() {
-    playTrack(track2);
+    track2.play();
+  });
+  $( "#reverb2" ).click(function() {
+    if(track2.reverberating){
+      track2.reverberating = false;
+    }else{
+      track2.reverberating = true;
+    }
+  });
+  $( "#gain2" ).keyup(function() {
+    track2.gainNode.gain.value = parseFloat($(this).val());
+    console.log(track1.gainNode.gain.value);
   });
 
   //third set of controls
   $( "#record3" ).click(function() {
     record();
     recState = recordState.RECORDING_3;
-    console.log(recState);
   });
   $( "#stop3" ).click(function() {
     if(recState = recordState.RECORDING_3){
-      stop();
+      stop(track3);
     }
   });
   $( "#play3" ).click(function() {
-    playTrack(track3);
+    track3.play();
+  });
+  $( "#reverb3" ).click(function() {
+    if(track3.reverberating){
+      track3.reverberating = false;
+    }else{
+      track3.reverberating = true;
+    }
+  });
+  $( "#gain3" ).keyup(function() {
+    track3.gainNode.gain.value = parseFloat($(this).val());
+    console.log(track1.gainNode.gain.value);
   });
 
   //fourth set of controls
   $( "#record4" ).click(function() {
     record();
     recState = recordState.RECORDING_4;
-    console.log(recState);
   });
+
   $( "#stop4" ).click(function() {
     if(recState = recordState.RECORDING_4){
-      stop();
+      stop(track4);
     }
   });
   $( "#play4" ).click(function() {
-    playTrack(track4);
+    track4.play();
   });
+  $( "#reverb4" ).click(function() {
+    if(track4.reverberating){
+      track4.reverberating = false;
+    }else{
+      track4.reverberating = true;
+    }
+  });
+  $( "#gain4" ).keyup(function() {
+    track4.gainNode.gain.value = parseFloat($(this).val());
+    console.log(track1.gainNode.gain.value);
+  });
+
 });
