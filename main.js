@@ -1,14 +1,47 @@
 
 "use strict";
 
-var track1, track2, track3, track4;
+
+function audioLooperTrack(con){
+  this.gainNode = con.createGain();
+  this.convolver = context.createConvolver();
+  this.gainNode.gain.value = .5;
+  this.buffer = null;
+  this.reverberating = true;
+  this.context = con;
+  this.play = function(){
+    var source = this.context.createBufferSource();
+    source.buffer = this.buffer;
+    source.connect(this.gainNode);
+    if(this.reverberating){
+      this.gainNode.connect(this.convolver);
+      this.convolver.connect(this.context.destination);
+    }
+    else{
+      this.gainNode.connect(this.context.destination);
+    }
+
+
+    source.start(0);
+  };
+}
+
+
 var Context = window.AudioContext || window.webkitAudioContext;
 var context = new Context();
+var track1 = new audioLooperTrack(context),
+track2, track3, track4;
+
+
 
 var mediaStream;
 var rec;
 var blob;
 var tempTrack;
+
+
+
+
 
 var recordState = {
   NOT_RECORDING :0,
@@ -27,6 +60,24 @@ navigator.getUserMedia = (
 );
 
 var recState = recordState.NOT_RECORDING;
+
+function createBuffer(url, object){
+  var request = new XMLHttpRequest();
+  request.open('GET', url, true);
+  request.responseType = 'arraybuffer';
+
+  request.onload = function(){
+    context.decodeAudioData(request.response, function(buffer){
+      object.buffer = buffer;
+    });
+  };
+  request.send();
+}
+
+(function init(){
+  createBuffer("/audio/TijuanaMall.wav", track1.convolver);
+}());
+
 
 function record() {
   // ask for permission and start recording
@@ -49,40 +100,6 @@ function record() {
   });
 }
 
-
-function createBuffer(url){
-  var request = new XMLHttpRequest();
-  request.open('GET', url, true);
-  request.responseType = 'arraybuffer';
-
-  request.onload = function(){
-    context.decodeAudioData(request.response, function(buffer){
-      console.log("buffer is: "+ buffer);
-      createBufferHelper(buffer);
-
-    });
-  };
-  request.send();
-}
-
-function createBufferHelper(buffer){
-  switch(recState){
-    case recordState.RECORDING_1:
-      track1 = buffer;
-      break;
-    case recordState.RECORDING_2:
-      track2 = buffer;
-      break;
-    case recordState.RECORDING_3:
-      track3 = buffer;
-      break;
-    case recordState.RECORDING_4:
-      track4 = buffer;
-      break;
-  }
-  recState = recordState.NOT_RECORDING;
-}
-
 function stop() {
   // stop the media stream
   mediaStream.stop();
@@ -97,17 +114,16 @@ function stop() {
     blob = e;
     //audioSource = new Audio((window.URL || window.webkitURL).createObjectURL(blob));
     var audioUrl = (window.URL || window.webkitURL).createObjectURL(blob);
-    createBuffer(audioUrl);
+    createBuffer(audioUrl, track1);
+    recState = recordState.NOT_RECORDING;
   });
-
 }
-
-
 
 function playTrack(track){
   var source = context.createBufferSource();
   source.buffer = track;
   source.connect(context.destination);
+  //addGain(source);
   source.start(0);
 }
 
@@ -123,8 +139,7 @@ $( document ).ready(function() {
     }
   });
   $( "#play1" ).click(function() {
-    console.log("track 1 is: "+ track1);
-    playTrack(track1);
+    track1.play();
   });
 
   //second set of controls
