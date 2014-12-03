@@ -6,10 +6,10 @@
 
 var Context = window.AudioContext || window.webkitAudioContext;
 var context = new Context();
-var track1 = new audioLooperTrack(context),
-    track2 = new audioLooperTrack(context),
-    track3 = new audioLooperTrack(context),
-    track4 = new audioLooperTrack(context);
+var clip1 = new audioLooperClip(context),
+    clip2 = new audioLooperClip(context),
+    clip3 = new audioLooperClip(context),
+    clip4 = new audioLooperClip(context);
 var impulse = {};
 impulse.buffer = null;
 
@@ -17,8 +17,14 @@ impulse.buffer = null;
 var mediaStream;
 var rec;
 var blob;
-var tempTrack;
+var tempClip;
+var loopDuration = 10;
 
+//WUT ARE WE DOIN DAWG
+//STEP 1 lets reformat all our tracks into clips - DONE
+//STEP 2 make a seperate function for recording and storing clips
+// and loading soundfiles #DONE
+//STEP 3 Make clips draggable
 
 
 
@@ -31,7 +37,7 @@ var recordState = {
   RECORDING_4: 4
 };
 
-function audioLooperTrack(con){
+function audioLooperClip(con){
   this.gainNode = con.createGain();
   this.convolver = null;
   this.gainNode.gain.value = .5;
@@ -71,7 +77,7 @@ navigator.getUserMedia = (
 
 var recState = recordState.NOT_RECORDING;
 
-function createBuffer(url, object){
+function loadAudioFile(url, object){
   var request = new XMLHttpRequest();
   request.open('GET', url, true);
   request.responseType = 'arraybuffer';
@@ -84,8 +90,10 @@ function createBuffer(url, object){
   request.send();
 }
 
+
+
 (function init(){
-  createBuffer("audio/TijuanaMall.wav", impulse);
+  loadAudioFile("audio/TijuanaMall.wav", impulse);
 }());
 
 
@@ -110,7 +118,7 @@ function record() {
   });
 }
 
-function stop(track) {
+function stop(clip) {
   // stop the media stream
   mediaStream.stop();
 
@@ -124,14 +132,29 @@ function stop(track) {
     blob = e;
     //audioSource = new Audio((window.URL || window.webkitURL).createObjectURL(blob));
     var audioUrl = (window.URL || window.webkitURL).createObjectURL(blob);
-    createBuffer(audioUrl, track);
+    //createBuffer(audioUrl, clip);
+
+    //creating a buffer and assiging to a track (clip for now)
+    var request = new XMLHttpRequest();
+    request.open('GET', audioUrl, true);
+    request.responseType = 'arraybuffer';
+
+    request.onload = function(){
+      context.decodeAudioData(request.response, function(buffer){
+        clip.buffer = buffer;
+        var clipLength = 100 * (buffer.duration/loopDuration);
+        $("#track1").html('<div class = "soundClip" style = "width:'+clipLength+'%"></div>');
+      });
+    };
+
+    request.send();
     recState = recordState.NOT_RECORDING;
   });
 }
 
-function playTrack(track){
+function playClip(clip){
   var source = context.createBufferSource();
-  source.buffer = track;
+  source.buffer = clip;
   source.connect(context.destination);
   //addGain(source);
   source.start(0);
@@ -144,22 +167,22 @@ $( document ).ready(function() {
   });
   $( "#stop1" ).click(function() {
     if(recState = recordState.RECORDING_1){
-      stop(track1);
+      stop(clip1);
     }
   });
   $( "#play1" ).click(function() {
-    track1.play();
+    clip1.play();
   });
   $( "#reverb1" ).click(function() {
-    if(track1.reverberating){
-      track1.reverberating = false;
+    if(clip1.reverberating){
+      clip1.reverberating = false;
     }else{
-      track1.reverberating = true;
+      clip1.reverberating = true;
     }
   });
   $( "#gain1" ).keyup(function() {
-    track1.gainNode.gain.value = parseFloat($(this).val());
-    console.log(track1.gainNode.gain.value);
+    clip1.gainNode.gain.value = parseFloat($(this).val());
+    console.log(clip1.gainNode.gain.value);
   });
   //second set of controls
   $( "#record2" ).click(function() {
@@ -168,22 +191,22 @@ $( document ).ready(function() {
   });
   $( "#stop2" ).click(function() {
     if(recState = recordState.RECORDING_2){
-      stop(track2);
+      stop(clip2);
     }
   });
   $( "#play2" ).click(function() {
-    track2.play();
+    clip2.play();
   });
   $( "#reverb2" ).click(function() {
-    if(track2.reverberating){
-      track2.reverberating = false;
+    if(clip2.reverberating){
+      clip2.reverberating = false;
     }else{
-      track2.reverberating = true;
+      clip2.reverberating = true;
     }
   });
   $( "#gain2" ).keyup(function() {
-    track2.gainNode.gain.value = parseFloat($(this).val());
-    console.log(track1.gainNode.gain.value);
+    clip2.gainNode.gain.value = parseFloat($(this).val());
+    console.log(clip1.gainNode.gain.value);
   });
 
   //third set of controls
@@ -193,22 +216,22 @@ $( document ).ready(function() {
   });
   $( "#stop3" ).click(function() {
     if(recState = recordState.RECORDING_3){
-      stop(track3);
+      stop(clip3);
     }
   });
   $( "#play3" ).click(function() {
-    track3.play();
+    clip3.play();
   });
   $( "#reverb3" ).click(function() {
-    if(track3.reverberating){
-      track3.reverberating = false;
+    if(clip3.reverberating){
+      clip3.reverberating = false;
     }else{
-      track3.reverberating = true;
+      clip3.reverberating = true;
     }
   });
   $( "#gain3" ).keyup(function() {
-    track3.gainNode.gain.value = parseFloat($(this).val());
-    console.log(track1.gainNode.gain.value);
+    clip3.gainNode.gain.value = parseFloat($(this).val());
+    console.log(clip1.gainNode.gain.value);
   });
 
   //fourth set of controls
@@ -219,22 +242,22 @@ $( document ).ready(function() {
 
   $( "#stop4" ).click(function() {
     if(recState = recordState.RECORDING_4){
-      stop(track4);
+      stop(clip4);
     }
   });
   $( "#play4" ).click(function() {
-    track4.play();
+    clip4.play();
   });
   $( "#reverb4" ).click(function() {
-    if(track4.reverberating){
-      track4.reverberating = false;
+    if(clip4.reverberating){
+      clip4.reverberating = false;
     }else{
-      track4.reverberating = true;
+      clip4.reverberating = true;
     }
   });
   $( "#gain4" ).keyup(function() {
-    track4.gainNode.gain.value = parseFloat($(this).val());
-    console.log(track1.gainNode.gain.value);
+    clip4.gainNode.gain.value = parseFloat($(this).val());
+    console.log(clip1.gainNode.gain.value);
   });
 
 });
