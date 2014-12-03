@@ -19,6 +19,8 @@ var rec;
 var blob;
 var tempClip;
 var loopDuration = 10;
+var trackWidth;
+var clipCount = 0;
 
 //WUT ARE WE DOIN DAWG
 //STEP 1 lets reformat all our tracks into clips - DONE
@@ -44,6 +46,7 @@ function audioLooperClip(con){
   this.buffer = null;
   this.reverberating = false;
   this.context = con;
+  this.clipDivId = null;
   this.play = function(){
     var source = this.context.createBufferSource();
     source.buffer = this.buffer;
@@ -90,12 +93,9 @@ function loadAudioFile(url, object){
   request.send();
 }
 
-
-
 (function init(){
   loadAudioFile("audio/TijuanaMall.wav", impulse);
 }());
-
 
 function record() {
   // ask for permission and start recording
@@ -108,7 +108,7 @@ function record() {
     // create new instance of Recorder.js using the mediaStreamSource
     rec = new Recorder(mediaStreamSource, {
       // pass the path to recorderWorker.js file here
-      workerPath: 'lib/recorderjs/recorderWorker.js'
+      workerPath: "lib/recorderjs/recorderWorker.js"
     });
 
     // start recording
@@ -143,7 +143,12 @@ function stop(clip) {
       context.decodeAudioData(request.response, function(buffer){
         clip.buffer = buffer;
         var clipLength = 100 * (buffer.duration/loopDuration);
-        $("#track1").html('<div class = "soundClip" style = "width:'+clipLength+'%"></div>');
+        clipCount++;
+        var clipId = "clip"+clipCount;
+        $("#track1").append('<div class = "soundClip" id ="'+clipId+'" style = "width:'+clipLength+'%"></div>');
+        refreshClipListeners();
+        clip.clipDivId = clipId;
+        console.log(clip.clipDivId);
       });
     };
 
@@ -152,12 +157,31 @@ function stop(clip) {
   });
 }
 
+
+
 function playClip(clip){
   var source = context.createBufferSource();
   source.buffer = clip;
   source.connect(context.destination);
   //addGain(source);
   source.start(0);
+}
+
+function refreshClipListeners(){
+  $( ".soundClip" ).draggable({ axis: "x",  containment: "parent"  });
+  $( ".soundClip" ).draggable({
+    start: function() {
+
+    },
+    drag: function() {
+
+    },
+    stop: function() {
+      var pos = parseFloat($(this).css("left").split("p")[0]);
+      var startTime = (pos/trackWidth) * loopDuration;
+      console.log("Start time is: " + startTime);
+    }
+  });
 }
 
 $( document ).ready(function() {
@@ -259,5 +283,7 @@ $( document ).ready(function() {
     clip4.gainNode.gain.value = parseFloat($(this).val());
     console.log(clip1.gainNode.gain.value);
   });
+  trackWidth = parseFloat($('#track1').css('width').split('p')[0]);
 
+  console.log(trackWidth);
 });
