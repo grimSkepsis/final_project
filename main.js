@@ -6,10 +6,10 @@
 
 var Context = window.AudioContext || window.webkitAudioContext;
 var context = new Context();
-var clip1 = new audioLooperClip(context),
-    clip2 = new audioLooperClip(context),
-    clip3 = new audioLooperClip(context),
-    clip4 = new audioLooperClip(context);
+var clip1 = new AudioLooperClip(context),
+    clip2 = new AudioLooperClip(context),
+    clip3 = new AudioLooperClip(context),
+    clip4 = new AudioLooperClip(context);
 var impulse = {};
 impulse.buffer = null;
 
@@ -17,7 +17,9 @@ impulse.buffer = null;
 var mediaStream;
 var rec;
 var blob;
-var tempClip;
+var numTracks = 4;
+var trackArray = [];
+
 var loopDuration = 10;
 var trackWidth;
 var clipCount = 0;
@@ -26,7 +28,11 @@ var clipCount = 0;
 //STEP 1 lets reformat all our tracks into clips - DONE
 //STEP 2 make a seperate function for recording and storing clips
 // and loading soundfiles #DONE
-//STEP 3 Make clips draggable
+//STEP 3 Make clips draggable -DONSKIS
+//STEP 4 Tie clip to clip div and make pos represent start time DONE
+//STEP 5 Store each clip in a respective array in a track, add global play button
+
+
 
 
 
@@ -39,7 +45,21 @@ var recordState = {
   RECORDING_4: 4
 };
 
-function audioLooperClip(con){
+var recordingTrack = null;
+function AudioLooperTrack(divId){
+   this.clipArray = [];
+   this.trackDivId = divId;
+   this.play = function(){
+     for(var i =0; i < this.clipArray.length; i++){
+       this.clipArray[i].play();
+     }
+   };
+
+}
+var track1 = new AudioLooperTrack();
+
+
+function AudioLooperClip(con){
   this.gainNode = con.createGain();
   this.convolver = null;
   this.gainNode.gain.value = .5;
@@ -121,15 +141,15 @@ function record() {
 
     // start recording
     rec.record();
-  }, function(err){
+  }, function(){
     console.log('Browser not supported');
   });
 }
 
-function stop(clip) {
+function stop(track) {
   // stop the media stream
   mediaStream.stop();
-
+  console.log(track);
   // stop Recorder.js
   rec.stop();
 
@@ -149,14 +169,16 @@ function stop(clip) {
 
     request.onload = function(){
       context.decodeAudioData(request.response, function(buffer){
+        var clip = new AudioLooperClip(context);
         clip.buffer = buffer;
         var clipLength = 100 * (buffer.duration/loopDuration);
         clipCount++;
+
         var clipId = "clip"+clipCount;
-        $("#track1").append('<div class = "soundClip" id ="'+clipId+'" style = "width:'+clipLength+'%"></div>');
+        $(track.trackDivId).append('<div class = "soundClip" id ="'+clipId+'" style = "width:'+clipLength+'%"></div>');
         refreshClipListeners();
         clip.clipDivId = clipId;
-        console.log(clip.clipDivId);
+        track.clipArray.push(clip);
       });
     };
 
@@ -167,13 +189,7 @@ function stop(clip) {
 
 
 
-function playClip(clip){
-  var source = context.createBufferSource();
-  source.buffer = clip;
-  source.connect(context.destination);
-  //addGain(source);
-  source.start(0);
-}
+
 
 function refreshClipListeners(){
   $( ".soundClip" ).draggable({ axis: "x",  containment: "parent"  });
@@ -192,106 +208,159 @@ function refreshClipListeners(){
   });
 }
 
+function init(){
+
+  for(var trackCount = 0; trackCount < numTracks; trackCount++){
+
+    var trackString =
+
+    '<div style="background-color:red">'+
+    '<h3>Track '+trackCount+'</h3>'+
+    '<button id = "record'+trackCount+'">record</button>'+
+    '<button id = "stop'+trackCount+'">stop</button>'+
+    '<button id = "play'+trackCount+'">play</button>'+
+    '<button id = "reverb'+trackCount+'">toggle reverb</button>'+
+    'Gain:<input type="text" id = "gain'+trackCount+'" name="" value = ".5">'+
+    '</div>'+
+    '<div id="track'+trackCount+'" class="track">'+
+    '<div class = "scrubber"></div></div>';
+    $('body').append(trackString);
+    trackArray.push(new AudioLooperTrack('#track'+trackCount));
+
+    $( "#record"+trackCount ).click(function() {
+      record();
+      //recState = recordState.RECORDING_1;
+
+        recordingTrack = trackArray[$(this).attr('id').slice(-1)].trackDivId;
+
+
+    });
+    $( "#stop"+trackCount  ).click(function() {
+
+        if(recordingTrack === trackArray[$(this).attr('id').slice(-1)].trackDivId){
+            stop(trackArray[$(this).attr('id').slice(-1)]);
+        }
+
+
+    });
+    $( "#play"+trackCount  ).click(function() {
+      trackArray[$(this).attr('id').slice(-1)].play();
+    });
+    $( "#reverb"+trackCount  ).click(function() {
+      // if(clip1.reverberating){
+      //   clip1.reverberating = false;
+      // }else{
+      //   clip1.reverberating = true;
+      // }
+    });
+    $( "#gain"+trackCount  ).keyup(function() {
+      // clip1.gainNode.gain.value = parseFloat($(this).val());
+      // console.log(clip1.gainNode.gain.value);
+    });
+  }
+};
+
 $( document ).ready(function() {
-  $( "#record1" ).click(function() {
-    record();
-    recState = recordState.RECORDING_1;
-  });
-  $( "#stop1" ).click(function() {
-    if(recState = recordState.RECORDING_1){
-      stop(clip1);
-    }
-  });
-  $( "#play1" ).click(function() {
-    clip1.play();
-  });
-  $( "#reverb1" ).click(function() {
-    if(clip1.reverberating){
-      clip1.reverberating = false;
-    }else{
-      clip1.reverberating = true;
-    }
-  });
-  $( "#gain1" ).keyup(function() {
-    clip1.gainNode.gain.value = parseFloat($(this).val());
-    console.log(clip1.gainNode.gain.value);
-  });
-  //second set of controls
-  $( "#record2" ).click(function() {
-    record();
-    recState = recordState.RECORDING_2;
-  });
-  $( "#stop2" ).click(function() {
-    if(recState = recordState.RECORDING_2){
-      stop(clip2);
-    }
-  });
-  $( "#play2" ).click(function() {
-    clip2.play();
-  });
-  $( "#reverb2" ).click(function() {
-    if(clip2.reverberating){
-      clip2.reverberating = false;
-    }else{
-      clip2.reverberating = true;
-    }
-  });
-  $( "#gain2" ).keyup(function() {
-    clip2.gainNode.gain.value = parseFloat($(this).val());
-    console.log(clip1.gainNode.gain.value);
-  });
-
-  //third set of controls
-  $( "#record3" ).click(function() {
-    record();
-    recState = recordState.RECORDING_3;
-  });
-  $( "#stop3" ).click(function() {
-    if(recState = recordState.RECORDING_3){
-      stop(clip3);
-    }
-  });
-  $( "#play3" ).click(function() {
-    clip3.play();
-  });
-  $( "#reverb3" ).click(function() {
-    if(clip3.reverberating){
-      clip3.reverberating = false;
-    }else{
-      clip3.reverberating = true;
-    }
-  });
-  $( "#gain3" ).keyup(function() {
-    clip3.gainNode.gain.value = parseFloat($(this).val());
-    console.log(clip1.gainNode.gain.value);
-  });
-
-  //fourth set of controls
-  $( "#record4" ).click(function() {
-    record();
-    recState = recordState.RECORDING_4;
-  });
-
-  $( "#stop4" ).click(function() {
-    if(recState = recordState.RECORDING_4){
-      stop(clip4);
-    }
-  });
-  $( "#play4" ).click(function() {
-    clip4.play();
-  });
-  $( "#reverb4" ).click(function() {
-    if(clip4.reverberating){
-      clip4.reverberating = false;
-    }else{
-      clip4.reverberating = true;
-    }
-  });
-  $( "#gain4" ).keyup(function() {
-    clip4.gainNode.gain.value = parseFloat($(this).val());
-    console.log(clip1.gainNode.gain.value);
-  });
+  init();
+  // $( "#record1" ).click(function() {
+  //   record();
+  //   recState = recordState.RECORDING_1;
+  // });
+  // $( "#stop1" ).click(function() {
+  //   if(recState = recordState.RECORDING_1){
+  //     stop(track1);
+  //   }
+  // });
+  // $( "#play1" ).click(function() {
+  //   track1.play();
+  // });
+  // $( "#reverb1" ).click(function() {
+  //   if(clip1.reverberating){
+  //     clip1.reverberating = false;
+  //   }else{
+  //     clip1.reverberating = true;
+  //   }
+  // });
+  // $( "#gain1" ).keyup(function() {
+  //   clip1.gainNode.gain.value = parseFloat($(this).val());
+  //   console.log(clip1.gainNode.gain.value);
+  // });
+  // //second set of controls
+  // $( "#record2" ).click(function() {
+  //   record();
+  //   recState = recordState.RECORDING_2;
+  // });
+  // $( "#stop2" ).click(function() {
+  //   if(recState = recordState.RECORDING_2){
+  //     stop(clip2);
+  //   }
+  // });
+  // $( "#play2" ).click(function() {
+  //   clip2.play();
+  // });
+  // $( "#reverb2" ).click(function() {
+  //   if(clip2.reverberating){
+  //     clip2.reverberating = false;
+  //   }else{
+  //     clip2.reverberating = true;
+  //   }
+  // });
+  // $( "#gain2" ).keyup(function() {
+  //   clip2.gainNode.gain.value = parseFloat($(this).val());
+  //   console.log(clip1.gainNode.gain.value);
+  // });
+  //
+  // //third set of controls
+  // $( "#record3" ).click(function() {
+  //   record();
+  //   recState = recordState.RECORDING_3;
+  // });
+  // $( "#stop3" ).click(function() {
+  //   if(recState = recordState.RECORDING_3){
+  //     stop(clip3);
+  //   }
+  // });
+  // $( "#play3" ).click(function() {
+  //   clip3.play();
+  // });
+  // $( "#reverb3" ).click(function() {
+  //   if(clip3.reverberating){
+  //     clip3.reverberating = false;
+  //   }else{
+  //     clip3.reverberating = true;
+  //   }
+  // });
+  // $( "#gain3" ).keyup(function() {
+  //   clip3.gainNode.gain.value = parseFloat($(this).val());
+  //   console.log(clip1.gainNode.gain.value);
+  // });
+  //
+  // //fourth set of controls
+  // $( "#record4" ).click(function() {
+  //   record();
+  //   recState = recordState.RECORDING_4;
+  // });
+  //
+  // $( "#stop4" ).click(function() {
+  //   if(recState = recordState.RECORDING_4){
+  //     stop(clip4);
+  //   }
+  // });
+  // $( "#play4" ).click(function() {
+  //   clip4.play();
+  // });
+  // $( "#reverb4" ).click(function() {
+  //   if(clip4.reverberating){
+  //     clip4.reverberating = false;
+  //   }else{
+  //     clip4.reverberating = true;
+  //   }
+  // });
+  // $( "#gain4" ).keyup(function() {
+  //   clip4.gainNode.gain.value = parseFloat($(this).val());
+  //   console.log(clip1.gainNode.gain.value);
+  // });
   trackWidth = parseFloat($('#track1').css('width').split('p')[0]);
-
+  console.log(trackArray);
   console.log(trackWidth);
 });
