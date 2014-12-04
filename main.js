@@ -64,10 +64,18 @@ function audioLooperClip(con){
     else{
       this.gainNode.connect(this.context.destination);
     }
-
-
-    source.start(0);
+    var sTime = this.calcStartTime() + this.context.currentTime;
+    source.start(sTime);
+    source.onended = function(){
+      source.stop();
+    }
   };
+  this.calcStartTime = function(){
+    var pos = parseFloat($("#"+this.clipDivId).css("left").split("p")[0]);
+    var startTime = (pos/trackWidth) * loopDuration;
+    console.log(startTime);
+    return startTime;
+  }
 }
 
 var navigator = window.navigator;
