@@ -47,12 +47,27 @@ var recordingTrack = null;
 function AudioLooperTrack(divId){
    this.clipArray = [];
    this.trackDivId = divId;
+   this.reverberating = false;
+   this.setGain = function(val){
+     for(var i =0; i < this.clipArray.length; i++){
+       this.clipArray[i].gainNode.gain.value = val;
+     }
+   }
+   this.toggleReverb = function(){
+     for(var i =0; i < this.clipArray.length; i++){
+       this.clipArray[i].reverberating = !this.clipArray[i].reverberating;
+     }
+   }
    this.play = function(){
      for(var i =0; i < this.clipArray.length; i++){
        this.clipArray[i].play();
      }
    };
-
+   this.stop = function(){
+     for(var i =0; i < this.clipArray.length; i++){
+       this.clipArray[i].stop();
+     }
+   };
 }
 
 
@@ -65,10 +80,12 @@ function AudioLooperClip(con){
   this.reverberating = false;
   this.context = con;
   this.clipDivId = null;
+  this.source = null;
   this.play = function(){
-    var source = this.context.createBufferSource();
-    source.buffer = this.buffer;
-    source.connect(this.gainNode);
+
+    this.source = this.context.createBufferSource();
+    this.source.buffer = this.buffer;
+    this.source.connect(this.gainNode);
     if(this.reverberating){
       this.convolver = context.createConvolver();
       this.convolver.buffer = impulse.buffer;
@@ -83,18 +100,19 @@ function AudioLooperClip(con){
       this.gainNode.connect(this.context.destination);
     }
     var sTime = this.calcStartTime() + this.context.currentTime;
-    source.start(sTime);
-    source.onended = function(){
-      source.stop();
-    }
+    this.source.start(sTime);
+
   };
   this.calcStartTime = function(){
-    var pos = parseFloat($("#"+this.clipDivId).css("left").split("p")[0]);
+    var pos = parseFloat($(this.clipDivId).css("left").split("p")[0]);
     var startTime = (pos/trackWidth) * loopDuration;
     if(startTime == NaN){
       startTime = 0;
     }
     return startTime;
+  }
+  this.stop = function(){
+    this.source.stop();
   }
 }
 
@@ -175,9 +193,10 @@ function stop(track) {
         clipCount++;
 
         var clipId = "clip"+clipCount;
-        $(track.trackDivId).append('<div class = "soundClip" id ="'+clipId+'" style = "width:'+clipLength+'%; left:0;"></div>');
+        $(track.trackDivId).append('<div class = "soundClip" id ="'+clipId+'" style = "width:'+clipLength+'%; left:0;">'+
+        '<button class = "deleteClipBtn">delete</button></div>');
         refreshClipListeners();
-        clip.clipDivId = clipId;
+        clip.clipDivId = "#"+clipId;
         track.clipArray.push(clip);
       });
     };
@@ -187,13 +206,16 @@ function stop(track) {
   });
 }
 
-
 function playAll(){
   for(var i = 0; i<numTracks; i++){
     trackArray[i].play();
   }
 }
-
+function stopAll(){
+  for(var i = 0; i<numTracks; i++){
+    trackArray[i].stop();
+  }
+}
 function stopLoop(){
   clearInterval(loopInterval);
 }
@@ -219,6 +241,20 @@ function refreshClipListeners(){
       console.log("Start time is: " + startTime);
     }
   });
+  $(".deleteClipBtn").click(function(){
+    $(this).parent().remove();
+    updateAvailableClips();
+  });
+}
+
+function updateAvailableClips(){
+  for(var i = 0; i < trackArray.length; i++){
+    for(var j = 0; j < trackArray[i].clipArray.length; j++){
+      if($(trackArray[i].clipArray[j].clipDivId).length < 1){
+        trackArray[i].clipArray.splice(j, 1);
+      }
+    }
+  }
 }
 
 function init(){
@@ -260,15 +296,11 @@ function init(){
       trackArray[$(this).attr('id').slice(-1)].play();
     });
     $( "#reverb"+trackCount  ).click(function() {
-      // if(clip1.reverberating){
-      //   clip1.reverberating = false;
-      // }else{
-      //   clip1.reverberating = true;
-      // }
+      trackArray[$(this).attr('id').slice(-1)].toggleReverb();
     });
     $( "#gain"+trackCount  ).keyup(function() {
-      // clip1.gainNode.gain.value = parseFloat($(this).val());
-      // console.log(clip1.gainNode.gain.value);
+      trackArray[$(this).attr('id').slice(-1)].setGain(parseFloat($(this).val()));
+
     });
   }
 };
@@ -280,6 +312,7 @@ $( document ).ready(function() {
     if(looping){
       looping = false;
       stopLoop();
+      stopAll();
     }else{
       looping = true;
       startLoop();
