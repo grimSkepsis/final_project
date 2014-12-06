@@ -277,14 +277,14 @@ function init(){
 
     var trackString =
 
-    '<div style="background-color:red">'+
+    '<div style="background-color:black">'+
     '<h3>Track '+trackCount+'</h3>'+
     '<button id = "record'+trackCount+'">record</button>'+
     '<button id = "stop-recording'+trackCount+'">stop recording</button>'+
     '<button id = "play'+trackCount+'">play</button>'+
     '<button id = "stop'+trackCount+'">stop</button>'+
     '<button id = "reverb'+trackCount+'">toggle reverb</button>'+
-    'Gain:<input type="text" id = "gain'+trackCount+'" name="" value = ".5">'+
+    '<div id = "gain">Gain: <input type="text" id = "gain'+trackCount+'" name="" value = ".5"></div>'+
     '</div>'+
     '<div id="track'+trackCount+'" class="track">'+
     '<div class = "scrubber" id= "scrubber'+trackCount+'"></div></div>';
