@@ -22,6 +22,7 @@ var clipCount = 0;
 var looping = false;
 var currentTime = 0;
 var loopInterval;
+var scrubberWidth = 5;
 //WUT ARE WE DOIN DAWG
 //STEP 1 lets reformat all our tracks into clips - DONE
 //STEP 2 make a seperate function for recording and storing clips
@@ -44,9 +45,10 @@ var recordState = {
 };
 
 var recordingTrack = null;
-function AudioLooperTrack(divId){
+function AudioLooperTrack(divId,scrubId){
    this.clipArray = [];
    this.trackDivId = divId;
+   this.scrubDivId = scrubId;
    this.reverberating = false;
    this.setGain = function(val){
      for(var i =0; i < this.clipArray.length; i++){
@@ -62,11 +64,23 @@ function AudioLooperTrack(divId){
      for(var i =0; i < this.clipArray.length; i++){
        this.clipArray[i].play();
      }
+     console.log(this.scrubDivId);
+     var endOfTrack = (trackWidth - scrubberWidth);
+     $(this.scrubDivId).animate({
+       left : endOfTrack
+     }, loopDuration*1000, 'linear',
+     function(){
+
+       $(this).css("left","0px");
+     });
    };
    this.stop = function(){
+     $(this.scrubDivId).stop();
+     $(this.scrubDivId).css("left","0px");
      for(var i =0; i < this.clipArray.length; i++){
        this.clipArray[i].stop();
      }
+
    };
 }
 
@@ -266,15 +280,16 @@ function init(){
     '<div style="background-color:red">'+
     '<h3>Track '+trackCount+'</h3>'+
     '<button id = "record'+trackCount+'">record</button>'+
-    '<button id = "stop'+trackCount+'">stop</button>'+
+    '<button id = "stop-recording'+trackCount+'">stop recording</button>'+
     '<button id = "play'+trackCount+'">play</button>'+
+    '<button id = "stop'+trackCount+'">stop</button>'+
     '<button id = "reverb'+trackCount+'">toggle reverb</button>'+
     'Gain:<input type="text" id = "gain'+trackCount+'" name="" value = ".5">'+
     '</div>'+
     '<div id="track'+trackCount+'" class="track">'+
-    '<div class = "scrubber"></div></div>';
+    '<div class = "scrubber" id= "scrubber'+trackCount+'"></div></div>';
     $('body').append(trackString);
-    trackArray.push(new AudioLooperTrack('#track'+trackCount));
+    trackArray.push(new AudioLooperTrack('#track'+trackCount, '#scrubber'+trackCount));
 
     $( "#record"+trackCount ).click(function() {
       record();
@@ -284,16 +299,16 @@ function init(){
 
 
     });
-    $( "#stop"+trackCount  ).click(function() {
-
+    $( "#stop-recording"+trackCount  ).click(function() {
         if(recordingTrack === trackArray[$(this).attr('id').slice(-1)].trackDivId){
             stop(trackArray[$(this).attr('id').slice(-1)]);
         }
-
-
     });
     $( "#play"+trackCount  ).click(function() {
-      trackArray[$(this).attr('id').slice(-1)].play();
+        trackArray[$(this).attr('id').slice(-1)].play();
+    });
+    $( "#stop"+trackCount  ).click(function() {
+      trackArray[$(this).attr('id').slice(-1)].stop();
     });
     $( "#reverb"+trackCount  ).click(function() {
       trackArray[$(this).attr('id').slice(-1)].toggleReverb();
@@ -309,14 +324,19 @@ $( document ).ready(function() {
   init();
   trackWidth = parseFloat($('#track1').css('width').split('p')[0]);
   $( "#globalPlay").click(function() {
-    if(looping){
-      looping = false;
-      stopLoop();
-      stopAll();
-    }else{
+    if(!looping){
       looping = true;
       startLoop();
     }
 
   });
+  $( "#globalStop").click(function() {
+    if(looping){
+      looping = false;
+      stopLoop();
+      stopAll();
+    }
+
+  });
+
 });

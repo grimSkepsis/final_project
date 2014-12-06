@@ -17,4 +17,9 @@
   background-color:red;
   height:100%;
   width:5px;
+  z-index:1;
+}
+
+.clip{
+  z-index:0;
 }
