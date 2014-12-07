@@ -358,13 +358,13 @@ function init(){
       trackArray[$(this).attr('id').slice(-1)].setGain(parseFloat($(this).val()));
 
     });
-    $( "#distortion"+trackCount  ).keyup(function() {
+    $("#distortion"+trackCount).keyup(function() {
       trackArray[$(this).attr('id').slice(-1)].setDistortion(parseFloat($(this).val()));
 
     });
     $( "#low-pass"+trackCount  ).keyup(function() {
       trackArray[$(this).attr('id').slice(-1)].setLowPass(parseFloat($(this).val()));
-
+        console.log($(this).val());
     });
   }
 };
