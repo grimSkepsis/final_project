@@ -6,6 +6,17 @@ h3 {
   color: white;
 }
 
+.gain{
+  float: left;
+}
+.low-pass{
+  font-color:white;
+}
+
+.distortion{
+  font-color:white;
+}
+
 .track {
   position:relative;
   background-color: #AAAAAA;
@@ -201,7 +212,9 @@ h3 {
   border: 2px solid black;
 }
 
-#gain {
+.filter-label {
   color: white;
   margin-bottom: 4px;
+  float: right;
+  margin-left: 5px;
 }

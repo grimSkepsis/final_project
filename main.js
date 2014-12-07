@@ -55,6 +55,11 @@ function AudioLooperTrack(divId,scrubId){
        this.clipArray[i].gainNode.gain.value = val;
      }
    }
+   this.setDistortion = function(val){
+     for(var i =0; i < this.clipArray.length; i++){
+       this.clipArray[i].distortion.curve = distortionCurve(val);
+     }
+   }
    this.toggleReverb = function(){
      for(var i =0; i < this.clipArray.length; i++){
        this.clipArray[i].reverberating = !this.clipArray[i].reverberating;
@@ -84,12 +89,14 @@ function AudioLooperTrack(divId,scrubId){
    };
 }
 
-
-
 function AudioLooperClip(con){
   this.gainNode = con.createGain();
   this.convolver = null;
+  this.distortion = con.createWaveShaper();
+  this.distortion.curve = new Float32Array();
+  this.distortion.oversample = '4x';
   this.gainNode.gain.value = .5;
+  this.distortion.curve = distortionCurve(0);
   this.buffer = null;
   this.reverberating = false;
   this.context = con;
@@ -99,7 +106,10 @@ function AudioLooperClip(con){
 
     this.source = this.context.createBufferSource();
     this.source.buffer = this.buffer;
-    this.source.connect(this.gainNode);
+
+    this.source.connect(this.distortion);
+    this.distortion.connect(this.gainNode);
+
     if(this.reverberating){
       this.convolver = context.createConvolver();
       this.convolver.buffer = impulse.buffer;
@@ -130,6 +140,21 @@ function AudioLooperClip(con){
   }
 }
 
+//distortion
+function distortionCurve(amount) {
+  var k = typeof amount === 'number' ? amount : 50,
+  n_samples = 44100,
+  curve = new Float32Array(n_samples),
+  deg = Math.PI / 180,
+  x;
+  for (var i = 0 ; i < n_samples; ++i ) {
+    x = i * 2 / n_samples - 1;
+    curve[i] = ( 3 + k ) * x * 20 * deg / ( Math.PI + k * Math.abs(x) );
+  }
+  return curve;
+};
+
+
 var navigator = window.navigator;
 navigator.getUserMedia = (
   navigator.getUserMedia ||
@@ -153,7 +178,7 @@ function loadAudioFile(url, object){
   request.send();
 }
 
-(function init(){
+(function initReberbImpulse(){
   loadAudioFile("audio/TijuanaMall.wav", impulse);
 }());
 
@@ -284,7 +309,9 @@ function init(){
     '<button id = "play'+trackCount+'">play</button>'+
     '<button id = "stop'+trackCount+'">stop</button>'+
     '<button id = "reverb'+trackCount+'">toggle reverb</button>'+
-    '<div id = "gain">Gain: <input type="text" id = "gain'+trackCount+'" name="" value = ".5"></div>'+
+    '<div class="filter-label">Gain: <input type="text" id = "gain'+trackCount+'" name="" value = ".5"></div>'+
+    '<div class="filter-label">Low-Pass: <input type="text" id = "low-pass'+trackCount+'" name="" value = "0"></div>'+
+    '<div class="filter-label">Distortion: <input type="text" id = "distortion'+trackCount+'" name="" value = "0"></div>'+
     '</div>'+
     '<div id="track'+trackCount+'" class="track">'+
     '<div class = "scrubber" id= "scrubber'+trackCount+'"></div></div>';
@@ -315,6 +342,10 @@ function init(){
     });
     $( "#gain"+trackCount  ).keyup(function() {
       trackArray[$(this).attr('id').slice(-1)].setGain(parseFloat($(this).val()));
+
+    });
+    $( "#distortion"+trackCount  ).keyup(function() {
+      trackArray[$(this).attr('id').slice(-1)].setDistortion(parseFloat($(this).val()));
 
     });
   }
