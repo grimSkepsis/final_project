@@ -60,6 +60,11 @@ function AudioLooperTrack(divId,scrubId){
        this.clipArray[i].distortion.curve = distortionCurve(val);
      }
    }
+   this.setLowPass = function(val){
+     for(var i =0; i < this.clipArray.length; i++){
+       this.clipArray[i].lowPassNode.frequency.value = val;
+     }
+   }
    this.toggleReverb = function(){
      for(var i =0; i < this.clipArray.length; i++){
        this.clipArray[i].reverberating = !this.clipArray[i].reverberating;
@@ -91,14 +96,22 @@ function AudioLooperTrack(divId,scrubId){
 
 function AudioLooperClip(con){
   this.gainNode = con.createGain();
+  //reverb
   this.convolver = null;
+  this.reverberating = false;
+  //distortion
   this.distortion = con.createWaveShaper();
   this.distortion.curve = new Float32Array();
   this.distortion.oversample = '4x';
-  this.gainNode.gain.value = .5;
   this.distortion.curve = distortionCurve(0);
+  //gain
+  this.gainNode.gain.value = .5;
+  //low-pass
+  this.lowPassNode = con.createBiquadFilter();
+  this.lowPassNode.type = 'lowpass';
+  this.lowPassNode.frequency.value = 0;
+  //misc.
   this.buffer = null;
-  this.reverberating = false;
   this.context = con;
   this.clipDivId = null;
   this.source = null;
@@ -107,7 +120,8 @@ function AudioLooperClip(con){
     this.source = this.context.createBufferSource();
     this.source.buffer = this.buffer;
 
-    this.source.connect(this.distortion);
+    this.source.connect(this.lowPassNode);
+    this.lowPassNode.connect(this.distortion);
     this.distortion.connect(this.gainNode);
 
     if(this.reverberating){
@@ -346,6 +360,10 @@ function init(){
     });
     $( "#distortion"+trackCount  ).keyup(function() {
       trackArray[$(this).attr('id').slice(-1)].setDistortion(parseFloat($(this).val()));
+
+    });
+    $( "#low-pass"+trackCount  ).keyup(function() {
+      trackArray[$(this).attr('id').slice(-1)].setLowPass(parseFloat($(this).val()));
 
     });
   }
