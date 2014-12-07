@@ -20,7 +20,6 @@ var loopDuration = 10;
 var trackWidth;
 var clipCount = 0;
 var looping = false;
-var currentTime = 0;
 var loopInterval;
 var scrubberWidth = 5;
 //WUT ARE WE DOIN DAWG
@@ -50,6 +49,9 @@ function AudioLooperTrack(divId,scrubId){
    this.trackDivId = divId;
    this.scrubDivId = scrubId;
    this.reverberating = false;
+   this.distortionVal = 0;
+   this.lowPassVal = 10000;
+   this.gainVal = .5;
    this.setGain = function(val){
      for(var i =0; i < this.clipArray.length; i++){
        this.clipArray[i].gainNode.gain.value = val;
@@ -71,6 +73,7 @@ function AudioLooperTrack(divId,scrubId){
      }
    }
    this.play = function(){
+     $(this.scrubDivId).stop();
      for(var i =0; i < this.clipArray.length; i++){
        this.clipArray[i].play();
      }
@@ -207,7 +210,7 @@ function record() {
     // create new instance of Recorder.js using the mediaStreamSource
     rec = new Recorder(mediaStreamSource, {
       // pass the path to recorderWorker.js file here
-      workerPath: "lib/recorderjs/recorderWorker.js"
+      workerPath: 'lib/recorderjs/recorderWorker.js'
     });
 
     // start recording
@@ -250,6 +253,9 @@ function stop(track) {
         '<button class = "deleteClipBtn">delete</button></div>');
         refreshClipListeners();
         clip.clipDivId = "#"+clipId;
+        clip.gainNode.gain.value = track.gainVal;
+        clip.lowPassNode.frequency.value = track.lowPassVal;
+        clip.distortion.curve = distortionCurve(track.distortionVal);
         track.clipArray.push(clip);
       });
     };
@@ -313,7 +319,7 @@ function updateAvailableClips(){
 function init(){
 
   for(var trackCount = 0; trackCount < numTracks; trackCount++){
-
+    trackArray.push(new AudioLooperTrack('#track'+trackCount, '#scrubber'+trackCount));
     var trackString =
 
     '<div style="background-color:black">'+
@@ -323,46 +329,41 @@ function init(){
     '<button id = "play'+trackCount+'">play</button>'+
     '<button id = "stop'+trackCount+'">stop</button>'+
     '<button id = "reverb'+trackCount+'">toggle reverb</button>'+
-    '<div class="filter-label">Gain: <input type="text" id = "gain'+trackCount+'" name="" value = ".5"></div>'+
-    '<div class="filter-label">Low-Pass: <input type="text" id = "low-pass'+trackCount+'" name="" value = "0"></div>'+
-    '<div class="filter-label">Distortion: <input type="text" id = "distortion'+trackCount+'" name="" value = "0"></div>'+
+    '<div class="filter-label">Gain: <input type="text" id = "gain'+trackCount+'" name="" value = "'+trackArray[trackCount].gainVal+'"></div>'+
+    '<div class="filter-label">Low-Pass: <input type="text" id = "low-pass'+trackCount+'" name="" value = "'+trackArray[trackCount].lowPassVal+'"></div>'+
+    '<div class="filter-label">Distortion: <input type="text" id = "distortion'+trackCount+'" name="" value = "'+trackArray[trackCount].distortionVal+'"></div>'+
     '</div>'+
     '<div id="track'+trackCount+'" class="track">'+
     '<div class = "scrubber" id= "scrubber'+trackCount+'"></div></div>';
     $('body').append(trackString);
-    trackArray.push(new AudioLooperTrack('#track'+trackCount, '#scrubber'+trackCount));
 
-    $( "#record"+trackCount ).click(function() {
+
+    $( '#record'+trackCount ).click(function() {
       record();
-      //recState = recordState.RECORDING_1;
-
-        recordingTrack = trackArray[$(this).attr('id').slice(-1)].trackDivId;
-
-
+      recordingTrack = trackArray[$(this).attr('id').slice(-1)].trackDivId;
     });
-    $( "#stop-recording"+trackCount  ).click(function() {
+    $( '#stop-recording'+trackCount  ).click(function() {
         if(recordingTrack === trackArray[$(this).attr('id').slice(-1)].trackDivId){
             stop(trackArray[$(this).attr('id').slice(-1)]);
         }
     });
-    $( "#play"+trackCount  ).click(function() {
+    $('#play'+trackCount  ).click(function() {
         trackArray[$(this).attr('id').slice(-1)].play();
     });
-    $( "#stop"+trackCount  ).click(function() {
+    $('#stop'+trackCount  ).click(function() {
       trackArray[$(this).attr('id').slice(-1)].stop();
     });
-    $( "#reverb"+trackCount  ).click(function() {
+    $('#reverb'+trackCount  ).click(function() {
       trackArray[$(this).attr('id').slice(-1)].toggleReverb();
     });
-    $( "#gain"+trackCount  ).keyup(function() {
+    $('#gain'+trackCount  ).keyup(function() {
       trackArray[$(this).attr('id').slice(-1)].setGain(parseFloat($(this).val()));
-
     });
-    $("#distortion"+trackCount).keyup(function() {
+    $('#distortion'+trackCount).keyup(function() {
       trackArray[$(this).attr('id').slice(-1)].setDistortion(parseFloat($(this).val()));
 
     });
-    $( "#low-pass"+trackCount  ).keyup(function() {
+    $('#low-pass'+trackCount  ).keyup(function() {
       trackArray[$(this).attr('id').slice(-1)].setLowPass(parseFloat($(this).val()));
         console.log($(this).val());
     });
